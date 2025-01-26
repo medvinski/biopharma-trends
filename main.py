@@ -3,6 +3,29 @@ from collections import Counter
 import pandas as pd
 import plotly.express as px
 
+page_bg_img = """
+<style>
+[data-testid="stAppViewContainer"] {
+    background-image: url("images/image.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+[data-testid="stSidebar"] {
+    background-color: rgba(255, 255, 255, 0.7); /* Optional transparency for sidebar */
+}
+</style>
+"""
+
+# Inject CSS into the app
+st.markdown(page_bg_img, unsafe_allow_html=True)
+
+# Streamlit app content
+st.title("Biopharma Trends")
+st.write("This app has a custom background image!")
+
+
 
 # Helper functions
 def load_profiles(csv_file="data/title_profile.csv"):
