@@ -1,14 +1,14 @@
-import requests                           # Import modułu umożliwiającego wysyłanie zapytań HTTP
-from bs4 import BeautifulSoup             # Import BeautifulSoup do parsowania kodu HTML
-import csv                                # Import modułu do pracy z plikami CSV
-import os                                 # Import modułu os do operacji na systemie plików
-import time                               # Import modułu time, służącego do obsługi opóźnień i pomiaru czasu
-import logging                            # Import modułu logging, który umożliwia logowanie komunikatów
-import schedule                           # Import modułu schedule do planowania wykonywania zadań (pip install schedule)
-import difflib                            # Import modułu difflib, służącego do dopasowań rozmytych (fuzzy matching)
-import re                                 # Import modułu re do pracy z wyrażeniami regularnymi
+import requests                          
+from bs4 import BeautifulSoup             
+import csv                               
+import os                                 
+import time                               
+import logging                           
+import schedule                           
+import difflib                            
+import re                                 
 
-# Konfiguracja logowania – ustawiamy poziom logowania i format komunikatów.
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Adres URL głównej strony z ofertami pracy, z której będą pobierane dane.
@@ -22,29 +22,26 @@ BASE_URL = (
     "category/sales_marketing_and_communications/category/statistics"
 )
 
-# Nagłówki zapytań HTTP – imitujemy przeglądarkę, aby uniknąć blokady.
+# Imitacja przeglądarki, aby uniknąć blokady.
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
 }
 
 def get_job_links(session):
-    """
-    Funkcja pobiera linki do ofert pracy z głównej strony.
-    Korzysta z obiektu session do wysłania zapytania HTTP i parsuje otrzymany HTML.
-    """
+    
     try:
         response = session.get(BASE_URL, headers=HEADERS)
-        response.raise_for_status()  # Podnosi wyjątek, jeśli kod odpowiedzi HTTP wskazuje błąd.
+        response.raise_for_status()  
     except requests.RequestException as e:
         logging.error(f"Error fetching main page: {e}")
         return []
     
-    # Parsowanie HTML przy użyciu BeautifulSoup.
+    
     soup = BeautifulSoup(response.text, "html.parser")
     job_links = []
-    # Iteracja po wszystkich elementach <a> zawierających atrybut href.
+    
     for job in soup.find_all("a", href=True):
-        # Sprawdzamy, czy link zawiera fragment "job_display", co identyfikuje ofertę pracy.
+        
         if "job_display" in job["href"]:
             job_url = f"https://www.europharmajobs.com/{job['href']}"
             if job_url not in job_links:
@@ -52,15 +49,12 @@ def get_job_links(session):
     return job_links
 
 def filter_unwanted(text):
-    """
-    Funkcja usuwa niechciane linie tekstu.
-    Przerywa dalsze przetwarzanie, gdy natrafi na frazy takie jak "apply now" lub "jobs by experience".
-    """
-    lines = text.splitlines()  # Podział tekstu na poszczególne linie.
+   
+    lines = text.splitlines()  
     filtered = []
     for line in lines:
-        low_line = line.strip().lower()  # Normalizacja – usunięcie zbędnych spacji i zamiana na małe litery.
-        # Jeśli linia zawiera "apply now" lub "jobs by experience", przerywamy dalsze przetwarzanie.
+        low_line = line.strip().lower()  
+        
         if "apply now" in low_line:
             break
         if "jobs by experience" in low_line:
@@ -69,11 +63,7 @@ def filter_unwanted(text):
     return "\n".join(filtered)
 
 def scrape_job_profile(session, job_url):
-    """
-    Funkcja pobiera szczegóły oferty pracy (tytuł i opis) ze wskazanego linku.
-    Wykorzystuje BeautifulSoup do parsowania strony oraz wyrażenia regularne i narzędzia fuzzy matching (difflib)
-    do identyfikacji istotnych sekcji opisu oferty.
-    """
+   
     try:
         response = session.get(job_url, headers=HEADERS)
         response.raise_for_status()
@@ -83,16 +73,16 @@ def scrape_job_profile(session, job_url):
     
     soup = BeautifulSoup(response.text, "html.parser")
     
-    # Ekstrakcja tytułu oferty (element <h1>)
+   
     job_title_element = soup.find("h1")
     job_title = job_title_element.text.strip() if job_title_element else "N/A"
     
-    # Ograniczenie ekstrakcji do kontenera z opisem oferty (div o klasie "jobDisplay")
+    
     container = soup.find("div", class_="jobDisplay")
     if not container:
-        container = soup  # Jeśli kontener nie zostanie znaleziony, przeszukujemy całą stronę
+        container = soup  
 
-    # Lista kluczowych fraz (nagłówków) wskazujących na sekcje z istotnymi informacjami
+   
     header_keywords = [
         "qualifications and skills:",
         "key competencies:",
@@ -147,30 +137,30 @@ def scrape_job_profile(session, job_url):
         "educational requirements",
         "attributes for the role:"
     ]
-    # Normalizacja listy – usunięcie zbędnych spacji i zamiana na małe litery
+    
     header_keywords = [k.strip().lower() for k in header_keywords]
 
     extracted_content = ""
-    # Przeszukiwanie wszystkich elementów <h3> wewnątrz kontenera
+    
     for header_element in container.find_all("h3"):
         header_text = header_element.get_text(separator=" ", strip=True).lower()
-        # Pomijamy nagłówki stopki
+        
         if "jobs by experience" in header_text:
             continue
-        # Sprawdzamy, czy nagłówek zawiera bezpośrednio frazy z listy lub czy jest do nich podobny (fuzzy matching)
+        
         if any(keyword in header_text for keyword in header_keywords) or \
            difflib.get_close_matches(header_text, header_keywords, n=1, cutoff=0.8):
             section_text = ""
-            # Iterujemy po kolejnych elementach (sibling) po nagłówku
+            
             for sibling in header_element.find_next_siblings():
                 sibling_text = sibling.get_text(separator=" ", strip=True)
-                # Kończymy, gdy natrafimy na frazę "apply now"
+                
                 if "apply now" in sibling_text.lower():
                     break
                 section_text += sibling_text + "\n"
             extracted_content += section_text + "\n"
     
-    # Filtrowanie niechcianych fragmentów tekstu
+    
     profile = filter_unwanted(extracted_content.strip()) if extracted_content.strip() else None
 
     return {
@@ -179,10 +169,7 @@ def scrape_job_profile(session, job_url):
     }
 
 def save_profiles_to_csv(job_data_list, filename="data/title_profile.csv"):
-    """
-    Zapisuje listę zebranych danych (tytuły ofert i ich opisy) do pliku CSV.
-    Tworzy folder docelowy, jeśli nie istnieje.
-    """
+    
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, mode="w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=["Job Title", "Profile"])
@@ -191,12 +178,7 @@ def save_profiles_to_csv(job_data_list, filename="data/title_profile.csv"):
             writer.writerow(job_data)
 
 def run_scraper():
-    """
-    Główna funkcja wykonująca cały proces:
-      1. Pobiera linki do ofert pracy.
-      2. Dla każdego linku pobiera szczegóły oferty (tytuł i opis).
-      3. Zbiera wyniki i zapisuje je do pliku CSV.
-    """
+  
     with requests.Session() as session:
         job_links = get_job_links(session)
         if not job_links:
@@ -217,12 +199,7 @@ def run_scraper():
         logging.info("Scraping complete. Profiles saved to 'data/title_profile.csv'.")
 
 def main():
-    """
-    Główna funkcja uruchamiająca scraper:
-      - Zaplanowane uruchamianie codziennie o 23:59.
-      - Natychmiastowe uruchomienie scraper’a po starcie.
-      - Pętla, która sprawdza i wykonuje zaplanowane zadania.
-    """
+   
     schedule.every().day.at("23:59").do(run_scraper)
     run_scraper()
     while True:

@@ -5,7 +5,7 @@ import plotly.express as px
 import difflib
 
 def load_profiles(csv_file="data/title_profile.csv"):
-    """Wczytuje profile ofert pracy z pliku CSV."""
+    
     try:
         df = pd.read_csv(csv_file)
         return df["Profile"].dropna().tolist(), df
@@ -14,12 +14,7 @@ def load_profiles(csv_file="data/title_profile.csv"):
         return [], None
 
 def categorize_job_areas(profiles):
-    """
-    Kategoryzuje oferty pracy do określonych obszarów na podstawie słów kluczowych,
-    przy czym dla przypisania profilu do danej kategorii wymagane jest wystąpienie co najmniej dwóch słów kluczowych.
     
-    Łączy kategorie 'Clinical' i 'Biotechnology' w jedną, ponieważ często dotyczą one podobnych obszarów badań i rozwoju.
-    """
     areas = {
         "Clinical & Biotechnology R&D": [
             "clinical", "trials", "research"
@@ -53,23 +48,20 @@ def categorize_job_areas(profiles):
                 pattern = r'\b' + re.escape(keyword) + r'\b'
                 if re.search(pattern, lower_profile):
                     match_count += 1
-            # Przypisujemy profil do danej kategorii, jeżeli znaleziono co najmniej 2 słowa kluczowe
+            # Przypisz profil do danej kategorii, jeżeli znaleziono co najmniej 2 słowa kluczowe
             if match_count >= 2:
                 area_counts[area] += 1
     return area_counts
 
 def extract_tools_and_certificates(profiles):
-    """
-    Ekstrahuje z profili oferty pracy informacje o narzędziach i certyfikatach,
-    korzystając z dopasowań wyrażeń regularnych (regex).
-    """
+    
     tools = [
         'veeva', 'sas', 'sql', 'python', 'r', 'java', 'excel', 'tableau', 'powerpoint',
         'jira', 'masshunter', 'spotfire', 'knime', 'minitab', 'biovia', 'chromeleon',
         'lims', 'cdms', 'edc', 'medidata', 'argus', 'oracle', 'sap', 'qlik', 'spss',
         'clinicaltrialsgov', 'microsoft project', 'prism', 'tensorflow', 'pytorch', 'keras',
         'scikit-learn', 'hadoop', 'spark', 'aws', 'azure', 'google cloud', 'power bi',
-        'adobe analytics', 'google analytics', 'hubspot', 'marketo', 'salesforce', 'aem'
+        'adobe analytics', 'google analytics', 'hubspot', 'marketo', 'salesforce', 'aem', "ccba", "cbap", "iiba-aac", "pmi-pba", "cap", "cbatl", "cbpp", "cflba", "cpre"
     ]
     certificates = [
         'pmp', 'six sigma', 'cmc', 'gcp', 'iso', 'pharmacovigilance',
@@ -78,8 +70,7 @@ def extract_tools_and_certificates(profiles):
         'google ads', 'google analytics', 'hubspot', 'salesforce',
         'aws', 'azure', 'tensorflow', 'pmi-acp'
     ]
-    # Usunięcie duplikatów z listy certyfikatów.
-    certificates = list(dict.fromkeys(certificates))
+    
 
     tools_counts = Counter()
     certificates_counts = Counter()
@@ -98,12 +89,9 @@ def extract_tools_and_certificates(profiles):
     return tools_counts, certificates_counts
 
 def summarize_trends(profiles):
-    """
-    Generuje podsumowanie istotnych trendów występujących w profilach ofert pracy,
-    wykorzystując zarówno dokładne dopasowania za pomocą regex, jak i fuzzy matching do wykrywania podobnych fraz.
-    """
+    
     practical_phrases = [
-        # Kluczowe umiejętności miękkie i związane z zarządzaniem
+        # Umiejętności miękkie oraz ogólne
         "communication skills",
         "team management",
         "leadership skills",
@@ -124,7 +112,7 @@ def summarize_trends(profiles):
         "supply chain optimization",
         "pharmacovigilance",
         
-        # Trendy związane z transformacją cyfrową i technologiami IT
+        # Frazy związane z transformacją cyfrową i technologiami IT
         "digital transformation",
         "digital marketing",
         "big data analytics",
@@ -150,15 +138,15 @@ def summarize_trends(profiles):
     trend_counts = Counter()
     for profile in profiles:
         lower_profile = profile.lower()
-        # Podziel tekst na zdania, aby lepiej wykrywać podobne frazy.
+        
         sentences = re.split(r'[.!?]', lower_profile)
         for phrase in practical_phrases:
             pattern = r'\b' + re.escape(phrase) + r'\b'
-            # Sprawdzenie dokładnego dopasowania w całym profilu
+            
             if re.search(pattern, lower_profile):
                 trend_counts[phrase] += 1
             else:
-                # Jeśli brak dokładnego dopasowania, sprawdzamy każde zdanie przy użyciu fuzzy matching
+                
                 for sentence in sentences:
                     if difflib.get_close_matches(phrase, [sentence], n=1, cutoff=0.8):
                         trend_counts[phrase] += 1
@@ -166,7 +154,7 @@ def summarize_trends(profiles):
     return trend_counts
 
 def create_bar_chart(data, title):
-    """Tworzy czytelny wykres słupkowy przy użyciu Plotly, sortując dane malejąco według wartości."""
+    
     df = pd.DataFrame.from_dict(data, orient="index", columns=["Count"]).reset_index()
     df.columns = ["Category", "Count"]
     df = df.sort_values(by="Count", ascending=False)
@@ -188,7 +176,7 @@ def create_bar_chart(data, title):
     return fig
 
 def analyze_profiles(csv_file="data/title_profile.csv"):
-    """Analizuje profile ofert pracy oraz wypisuje wyniki analizy."""
+    
     profiles, df = load_profiles(csv_file)
     if not profiles:
         return
