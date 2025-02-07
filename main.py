@@ -6,9 +6,9 @@ import pandas as pd
 import plotly.express as px
 import os
 
-# Import the scraper function from your scripts folder.
+
 from scripts.pharma_scraper import run_scraper
-# Import analysis functions from analyzer.py for the remaining tabs.
+
 from scripts.analyzer import (
     load_profiles, 
     categorize_job_areas, 
