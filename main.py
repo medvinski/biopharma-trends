@@ -17,22 +17,18 @@ from scripts.analyzer import (
     create_bar_chart
 )
 
-# ---------------------------
-# Background Scraper Scheduler
-# ---------------------------
+
 def run_scraper_scheduler():
-    # Schedule the scraper to run daily at 23:59.
+   
     schedule.every().day.at("23:59").do(run_scraper)
     while True:
         schedule.run_pending()
         time.sleep(1)
 
-# Start the scraper scheduler in a background thread.
+
 threading.Thread(target=run_scraper_scheduler, daemon=True).start()
 
-# ---------------------------
-# Streamlit App
-# ---------------------------
+
 st.set_page_config(page_title="Biopharma Analyzer", layout="wide")
 st.title("Biopharma Job Profile Analyzer")
 
@@ -43,7 +39,7 @@ if profiles:
     st.write("### Job Data")
     st.dataframe(df, use_container_width=True)
 
-    # Create tabs for various analyses (without AI Insights).
+  
     tab1, tab2, tab3, tab4 = st.tabs([
         "Job Areas", "Tools", "Certificates", "Trends"
     ])
